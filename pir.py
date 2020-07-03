@@ -45,13 +45,3 @@ if __name__ == '__main__':
         main()
     except KeyboardInterrupt:
         io.cleanup()
-Turning the monitor on and off
-There are two ways to turn the monitor on and off. Use the tvservice command to turn off the monitor port.
-
-pi@raspberrypi ~/photoframe $ chmod 0744 monitor_off.sh 
-pi@raspberrypi ~/photoframe $ cat monitor_off.sh 
-tvservice -o
-
-pi@raspberrypi ~/photoframe $ chmod 0744 monitor_on.sh 
-pi@raspberrypi ~/photoframe $ cat monitor_on.sh 
-tvservice -c "PAL 4:3" && fbset -depth 8 && fbset -depth 16
