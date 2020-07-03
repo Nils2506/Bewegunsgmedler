@@ -7,7 +7,7 @@ import subprocess
 
 io.setmode(io.BCM)
 SHUTOFF_DELAY = 60 # seconds
-PIR_PIN = 25       # 22 on the board
+PIR_PIN = 18       # 12 on the board
 LED_PIN = 16
 
 def main():
