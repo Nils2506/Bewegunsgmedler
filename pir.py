@@ -1,78 +1,57 @@
-#  Bewegungsmelder schaltet Monitor vom Raspberry Pi aus und an
-#!/usr/bin/python
+#!/usr/bin/env python
 
-
-# Import der Python libraries
-import RPi.GPIO as GPIO
+import sys
 import time
-import datetime
+import RPi.GPIO as io
 import subprocess
 
+io.setmode(io.BCM)
+SHUTOFF_DELAY = 60 # seconds
+PIR_PIN = 25       # 22 on the board
+LED_PIN = 16
 
-# Verwendung des Board Mode, Angabe der PIN Nummern anstelle der GPIO BCM Nummer
-GPIO.setmode(GPIO.BOARD)
+def main():
+    io.setup(PIR_PIN, io.IN)
+    io.setup(LED_PIN, io.OUT)
+    turned_off = False
+    last_motion_time = time.time()
 
+    while True:
+        if io.input(PIR_PIN):
+            last_motion_time = time.time()
+            io.output(LED_PIN, io.LOW)
+            print ".",
+            sys.stdout.flush()
+            if turned_off:
+                turned_off = False
+                turn_on()
+        else:
+            if not turned_off and time.time() > (last_motion_time + 
+                                                 SHUTOFF_DELAY):
+                turned_off = True
+                turn_off()
+            if not turned_off and time.time() > (last_motion_time + 1):
+                io.output(LED_PIN, io.HIGH)
+        time.sleep(.1)
 
-# GPIO definieren, bei mir ist es PIN 8
-GPIO_PIR = 8
+def turn_on():
+    subprocess.call("sh /home/pi/photoframe/monitor_on.sh", shell=True)
 
+def turn_off():
+    subprocess.call("sh /home/pi/photoframe/monitor_off.sh", shell=True)
 
-#  GPIO als "Input" festlegen
-GPIO.setup(GPIO_PIR,GPIO.IN)
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        io.cleanup()
+Turning the monitor on and off
+There are two ways to turn the monitor on and off. Use the tvservice command to turn off the monitor port.
 
+pi@raspberrypi ~/photoframe $ chmod 0744 monitor_off.sh 
+pi@raspberrypi ~/photoframe $ cat monitor_off.sh 
+tvservice -o
 
-Current_State  = 0
-Previous_State = 0
-
-
-try:
-
-
-# erst mal schlafen bis der bootvorgang abgeschlossen ist
-time.sleep(60)
-
-
-# Warten bis Sensor sich meldet
-while GPIO.input(GPIO_PIR)==1:
-  Current_State  = 0
-
-
-subprocess.Popen('echo initilized PIR | wall', shell=True)
-
-
-# Schleife bis CTRL+C
-while True :
-
-
-  #Status von Sensor auslesen
-  Current_State = GPIO.input(GPIO_PIR)
-
-
-  if Current_State==1 and Previous_State==0:
-
-
-    # Kommando zum anschalten, Frambuffer erneuern
-    subprocess.Popen('echo Monitor on | wall', shell=True)
-    subprocess.Popen('/opt/vc/bin/tvservice -p', shell=True)
-    subprocess.Popen('fbset -depth 8', shell=True)
-    subprocess.Popen('fbset -depth 16', shell=True)
-    subprocess.Popen('sudo /bin/chvt 6 && sudo /bin/chvt 7', shell=True)
-    Previous_State=1
-
-
-  elif Current_State==0 and Previous_State==1:
-
-
-    # Ausschalten des Monitors
-    subprocess.Popen('echo Monitor off | wall', shell=True)
-    subprocess.Popen('/opt/vc/bin/tvservice -o', shell=True)
-    Previous_State=0
-
-
-  # 5 Sek Warten
-  time.sleep(5)
-
-
-except KeyboardInterrupt:
-print " Exit"
-GPIO.cleanup()
+pi@raspberrypi ~/photoframe $ chmod 0744 monitor_on.sh 
+pi@raspberrypi ~/photoframe $ cat monitor_on.sh 
+tvservice -c "PAL 4:3" && fbset -depth 8 && fbset -depth 16
